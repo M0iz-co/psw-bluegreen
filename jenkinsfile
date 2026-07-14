@@ -92,7 +92,7 @@ pipeline {
 
         }
 
-        stage('Update Deployment') {
+        stage('Deploy with Docker Compose') {
 
             steps {
 
