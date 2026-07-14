@@ -1,0 +1,131 @@
+pipeline {
+
+    agent any
+
+    environment {
+
+        IMAGE_NAME="psw-nginx"
+
+        IMAGE_TAG="${BUILD_NUMBER}"
+
+        HARBOR="localhost:8088"
+
+    }
+
+    stages {
+
+        stage('Checkout') {
+
+            steps {
+
+                checkout scm
+
+            }
+
+        }
+
+        stage('Build Image') {
+
+            steps {
+
+                sh """
+
+                docker build -t ${IMAGE_NAME}:${IMAGE_TAG} app
+
+                """
+
+            }
+
+        }
+
+        stage('Login Harbor') {
+
+            steps {
+
+                withCredentials([usernamePassword(
+
+                    credentialsId: 'harbor-creds',
+
+                    usernameVariable: 'USER',
+
+                    passwordVariable: 'PASS'
+
+                )]) {
+
+                    sh """
+
+                    echo \$PASS | docker login ${HARBOR} -u \$USER --password-stdin
+
+                    """
+
+                }
+
+            }
+
+        }
+
+        stage('Tag Image') {
+
+            steps {
+
+                sh """
+
+                docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${HARBOR}/library/${IMAGE_NAME}:${IMAGE_TAG}
+
+                """
+
+            }
+
+        }
+
+        stage('Push Image') {
+
+            steps {
+
+                sh """
+
+                docker push ${HARBOR}/library/${IMAGE_NAME}:${IMAGE_TAG}
+
+                """
+
+            }
+
+        }
+
+        stage('Update Deployment') {
+
+            steps {
+
+                sh """
+
+                echo TAG=${IMAGE_TAG} > .env
+
+                docker compose pull
+
+                docker compose up -d
+
+                """
+
+            }
+
+        }
+
+        stage('Health Check') {
+
+            steps {
+
+                sh """
+
+                sleep 10
+
+                curl http://localhost:8085
+
+                """
+
+            }
+
+        }
+
+    }
+
+}
