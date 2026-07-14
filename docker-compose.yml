@@ -1,29 +1,42 @@
 services:
 
-  app:
-
-    image: localhost:8088/library/psw-nginx:${TAG}
-
-    container_name: psw-app
-
+  app-blue:
+    image: localhost:8088/library/psw-nginx:${BLUE_TAG}
+    container_name: psw-app-blue
     restart: unless-stopped
+    networks:
+      - psw-network
+
+
+  app-green:
+    image: localhost:8088/library/psw-nginx:${GREEN_TAG}
+    container_name: psw-app-green
+    restart: unless-stopped
+    networks:
+      - psw-network
+
 
   nginx:
-
     image: nginx:latest
-
     container_name: psw-proxy
 
     ports:
-
       - "8085:80"
 
     volumes:
-
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
 
     depends_on:
-
-      - app
+      - app-blue
+      - app-green
 
     restart: unless-stopped
+
+    networks:
+      - psw-network
+
+
+networks:
+
+  psw-network:
+    driver: bridge
